@@ -15,7 +15,7 @@
         </div>
         <el-form
           v-if="route.name === 'Login'"
-          ref="formRef"
+          ref="loginFormRef"
           label-position="top"
           :model="loginFormModel"
           :rules="loginRules"
@@ -46,7 +46,7 @@
         </el-form>
         <el-form
           v-else
-          ref="formRef"
+          ref="registerFormRef"
           label-position="right"
           :model="registerFormModel"
           :rules="registerRules"
@@ -104,7 +104,8 @@ const currentBg = ['/login/bg1.svg', '/login/bg2.svg', '/login/bg3.svg'][
 
 const loading = ref(false);
 
-const formRef = ref<FormInstance>();
+const loginFormRef = ref<FormInstance>();
+const registerFormRef = ref<FormInstance>();
 const loginFormModel = ref<{
   username: string;
   password: string;
@@ -118,9 +119,29 @@ const loginRules: FormRules = {
 };
 
 const login = async () => {
-  if (!formRef.value) return;
+  if (!loginFormRef.value) return;
   try {
-    await formRef.value.validate();
+    await loginFormRef.value.validate();
+  } catch (err) {
+    return;
+  }
+  try {
+    const loginRes = await api.login({
+      username: loginFormModel.value.username,
+      password: loginFormModel.value.password
+    });
+    localStorage.setItem('refresh', loginRes.data.data.refresh);
+    localStorage.setItem('access', loginRes.data.data.access);
+    localStorage.setItem('managerID', String(loginRes.data.data.id));
+    localStorage.setItem('is_superuser', loginRes.data.data.is_superuser);
+  } catch (err) {
+    ElMessage.error('登录失败！请检查账号密码是否正确！');
+  }
+};
+const register = async () => {
+  if (!registerFormRef.value) return;
+  try {
+    await registerFormRef.value.validate();
   } catch (err) {
     return;
   }

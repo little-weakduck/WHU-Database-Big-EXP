@@ -8,7 +8,9 @@
         :ellipsis="false"
         router
       >
-        <div class="name">NAME</div>
+        <div class="name">
+          {{ userName }}
+        </div>
         <div class="flex-grow" />
         <el-menu-item index="course">课程</el-menu-item>
         <el-menu-item index="my">我的</el-menu-item>
@@ -26,6 +28,8 @@ import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import CourseList from './course/CourseList.vue';
 import My from './my/My.vue';
+
+const userName = localStorage.getItem('userName') || '';
 
 const router = useRouter();
 const route = useRoute();
@@ -46,6 +50,8 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   padding-left: 16px;
+  font-size: large;
+  font-weight: bold;
 }
 .flex-grow {
   flex-grow: 1;
