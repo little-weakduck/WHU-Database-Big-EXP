@@ -14,6 +14,20 @@
         <div class="flex-grow" />
         <el-menu-item index="course">课程</el-menu-item>
         <el-menu-item index="my">我的</el-menu-item>
+
+        <div class="name">
+          <el-popconfirm
+            title="是否确定退出登录"
+            confirm-button-text="确定"
+            cancel-button-text="取消"
+            hide-icon
+            @confirm="logout"
+          >
+            <template #reference>
+              <el-button>退出登录</el-button>
+            </template>
+          </el-popconfirm>
+        </div>
       </el-menu>
     </el-header>
     <el-main>
@@ -35,6 +49,9 @@ const router = useRouter();
 const route = useRoute();
 const activeIndex = ref('1');
 onMounted(() => {
+  if (userName === '') {
+    router.replace('/login');
+  }
   if (route.name === 'Course') {
     activeIndex.value = 'course';
   }
@@ -42,6 +59,10 @@ onMounted(() => {
     activeIndex.value = 'my';
   }
 });
+const logout = () => {
+  localStorage.clear();
+  router.push('/login');
+};
 </script>
 
 <style scoped>

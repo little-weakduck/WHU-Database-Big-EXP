@@ -68,8 +68,8 @@
             /> </el-form-item
           ><el-form-item label="身份" prop="type">
             <el-select v-model="registerFormModel.type" class="m-2" placeholder="请选择身份">
-              <el-option key="0" label="学生" value="0" />
-              <el-option key="1" label="老师" value="1" />
+              <el-option key="0" label="学生" :value="0" />
+              <el-option key="1" label="老师" :value="1" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -130,10 +130,11 @@ const login = async () => {
       username: loginFormModel.value.username,
       password: loginFormModel.value.password
     });
-    localStorage.setItem('refresh', loginRes.data.data.refresh);
-    localStorage.setItem('access', loginRes.data.data.access);
-    localStorage.setItem('managerID', String(loginRes.data.data.id));
-    localStorage.setItem('is_superuser', loginRes.data.data.is_superuser);
+
+    localStorage.setItem('userName', loginRes.data.name);
+    localStorage.setItem('userType', loginRes.data.usertype);
+    ElMessage.success('登陆成功！');
+    router.replace('/course');
   } catch (err) {
     ElMessage.error('登录失败！请检查账号密码是否正确！');
   }
@@ -146,14 +147,17 @@ const register = async () => {
     return;
   }
   try {
-    const loginRes = await api.login({
-      username: loginFormModel.value.username,
-      password: loginFormModel.value.password
+    const registerRes = await api.register({
+      username: registerFormModel.value.username,
+      password: registerFormModel.value.password,
+      usertype: registerFormModel.value.type
     });
-    localStorage.setItem('refresh', loginRes.data.data.refresh);
-    localStorage.setItem('access', loginRes.data.data.access);
-    localStorage.setItem('managerID', String(loginRes.data.data.id));
-    localStorage.setItem('is_superuser', loginRes.data.data.is_superuser);
+    console.log(registerRes);
+
+    localStorage.setItem('userName', registerRes.data.username);
+    localStorage.setItem('userType', registerRes.data.usertype);
+    ElMessage.success('注册成功！');
+    router.replace('/course');
   } catch (err) {
     ElMessage.error('登录失败！请检查账号密码是否正确！');
   }
@@ -169,11 +173,11 @@ const toLogin = () => {
 const registerFormModel = ref<{
   username: string;
   password: string;
-  type: 0 | 1 | undefined;
+  type: 0 | 1;
 }>({
   username: '',
   password: '',
-  type: undefined
+  type: 0
 });
 const registerRules: FormRules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
