@@ -18,6 +18,7 @@ export const getSelectCourse = (data: { username: string }) =>
   instance.post<CourseSelect[]>('/show_already', data);
 
 export const addCourse = (data: Course) => instance.post<ResponseBody<{}>>('/teacheradd', data);
+export const changeCourse = (data: Course) => instance.post<{}>('/course/change', data);
 
 export const getCourseStudent = (data: { coursename: string }) =>
   instance.post<CourseSelect[]>('/allstudent', data);

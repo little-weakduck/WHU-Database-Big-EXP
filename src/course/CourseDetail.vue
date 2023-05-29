@@ -28,6 +28,9 @@
           @click="dropCourse"
           >退课</el-button
         >
+        <el-button v-if="allowDeletePeople" type="primary" size="large" @click="startChangeCourse"
+          >修改</el-button
+        >
       </div>
     </div>
     <el-divider direction="horizontal" content-position="left"></el-divider>
@@ -124,6 +127,9 @@
       </div>
     </div>
   </div>
+  <el-dialog title="修改课程信息" v-model="isShowChangeCourse" width="50%">
+    <AddCourse :course="course" @change="isShowChangeCourse = !isShowChangeCourse" />
+  </el-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -134,6 +140,7 @@ import api from '@/api/api';
 import { type Comment } from '@/api/comment';
 import { type CourseSelect } from '@/api/course';
 import { ElMessage } from 'element-plus';
+import AddCourse from './AddCourse.vue';
 
 const props = defineProps<{
   course: Course;
@@ -157,6 +164,11 @@ const dropCourse = () => {
     course.value.select = false;
     emits('changeStatus');
   });
+};
+
+const isShowChangeCourse = ref(false);
+const startChangeCourse = () => {
+  isShowChangeCourse.value = true;
 };
 
 onMounted(() => {

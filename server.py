@@ -256,6 +256,28 @@ def signup():
         # 这里要加检查
         add_user(user, password=password, usety=types)
         return jsonify({"username": user, "usertype": types})
+
+# 修改课程
+
+
+@app.route("/api/course/change" ,methods=['POST'])
+def change():
+    data = request.get_json()
+    # cap = db.Column(db.Integer, index=True)
+    teachername = data.get("teacher")
+    name = data.get("name")
+    cri = data.get("credit")
+    time = data.get("time")
+    type = data.get("type")
+    pla = data.get("place")
+    cap = data.get("capacity")
+    result = coursesinfo.query.filter(
+        and_(coursesinfo.name == name, coursesinfo.teacher == teachername)).first()
+    result.time = time
+    result.type = type
+    result.place = pla
+    db.session.commit()
+    return jsonify({})
 # 学生加入课程 需要学生姓名，课程姓名
 
 
