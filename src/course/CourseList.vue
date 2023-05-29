@@ -19,7 +19,7 @@
             <span>{{ course.name }}</span>
             <div>
               <span>{{ course.credit }} 学分 </span>
-              <span v-if="course.select !== undefined">{{ course.select ? '已选' : '未选' }}</span>
+              <span v-if="userType === '0'">{{ course.select ? '已选' : '未选' }}</span>
             </div>
           </div>
         </template>
@@ -35,17 +35,23 @@
       <div v-if="showCourseList.length % 3 === 1" style="width: 340px" />
     </div>
   </div>
-  <el-dialog v-model="showCourseDetail" :title="detailCourse?.name" width="50%">
-    <CourseDetail :course="detailCourse!" :allowControl="userType === '0'"></CourseDetail>
+  <el-dialog v-model="showCourseDetail" :title="detailCourse?.name" destroy-on-close width="50%">
+    <CourseDetail
+      :course="detailCourse!"
+      :allowControl="userType === '0'"
+      @changeStatus="handleChangeStatus"
+    ></CourseDetail>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import router from '@/router';
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import CourseDetail from './CourseDetail.vue';
+import api from '@/api/api';
 
 export interface Course {
+  id?: string;
   name: string;
   teacher: string;
   credit: number;
@@ -67,87 +73,29 @@ const clickCourse = (course: Course) => {
   );
   showCourseDetail.value = true;
 };
-const courseList = ref<Course[]>([
-  {
-    name: '计算机网络',
-    teacher: '张三',
-    credit: 3,
-    type: '公共必修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100,
-    select: true
-  },
-  {
-    name: '速度速度上',
-    teacher: '张三',
-    credit: 3,
-    type: '公共选修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100,
-    select: true
-  },
-  {
-    name: '说的是',
-    teacher: '张三',
-    credit: 3,
-    type: '专业必修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100
-  },
-  {
-    name: '高铁热热',
-    teacher: '张三',
-    credit: 3,
-    type: '专业必修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100,
-    select: true
-  },
-  {
-    name: '好讨厌你',
-    teacher: '张三',
-    credit: 3,
-    type: '专业选修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100,
-    select: false
-  },
-  {
-    name: '具有头发改变',
-    teacher: '张三',
-    credit: 3,
-    type: '专业选修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100,
-    select: false
-  },
-  {
-    name: '通过人工',
-    teacher: '张三',
-    credit: 3,
-    type: '专业选修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100,
-    select: false
-  },
-  {
-    name: '投入更多的',
-    teacher: '张三',
-    credit: 3,
-    type: '公共必修课',
-    time: '周一 1-2节',
-    place: '教学楼A101',
-    capacity: 100,
-    select: false
-  }
-]);
+const courseList = ref<Course[]>([]);
+const getCourse = () => {
+  api.getAllCourse().then((res) => {
+    courseList.value = res.data;
+    if (userType === '0') {
+      api.getSelectCourse({ username: userName! }).then((res) => {
+        courseList.value = courseList.value.map((item) => {
+          if (res.data.find((course) => course.course === item.name)) {
+            return { ...item, select: true };
+          } else return { ...item, select: false };
+        });
+      });
+    }
+  });
+};
+onMounted(() => {
+  getCourse();
+});
+
+const handleChangeStatus = () => {
+  getCourse();
+};
+
 watch([type, courseList], (newVal) => {
   showCourseList.value = courseList.value.filter((item) => newVal[0].includes(item.type));
 });
@@ -155,7 +103,7 @@ const showCourseList = ref<Course[]>([]);
 showCourseList.value = courseList.value;
 
 const userType = localStorage.getItem('userType');
-
+const userName = localStorage.getItem('userName');
 // detail dialog
 const showCourseDetail = ref(false);
 const detailCourse = ref<Course>();

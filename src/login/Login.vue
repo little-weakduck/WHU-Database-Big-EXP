@@ -7,8 +7,11 @@
       <el-space direction="vertical" fill style="width: 400px" size="large">
         <div>
           <h1 style="font-size: 32px; text-align: center; margin-bottom: 12px; font-weight: 500">
-            tmd想个名字啊
+            街道口男子职业学校
           </h1>
+          <h2 style="font-size: 24px; text-align: center; margin-bottom: 12px; font-weight: 500">
+            课程管理系统
+          </h2>
           <h2 style="font-size: 16px; color: #aaa; text-align: center; font-weight: normal">
             {{ route.name === 'Login' ? '账号登录' : '注册帐号' }}
           </h2>
@@ -82,7 +85,7 @@
         </el-form>
       </el-space>
       <div class="footer">
-        <p class="copyright">武汉大学国家网络安全学院xxx出品</p>
+        <p class="copyright">武汉大学国家网络安全学院白蓝组出品</p>
       </div>
     </el-main>
   </el-container>
@@ -155,7 +158,7 @@ const register = async () => {
     console.log(registerRes);
 
     localStorage.setItem('userName', registerRes.data.username);
-    localStorage.setItem('userType', registerRes.data.usertype);
+    localStorage.setItem('userType', registerRes.data.usertype.toString());
     ElMessage.success('注册成功！');
     router.replace('/course');
   } catch (err) {

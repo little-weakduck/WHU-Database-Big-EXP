@@ -36,15 +36,19 @@
           <div>课程容量：{{ course.capacity }}人</div>
         </div>
       </el-card>
+      <h1 v-if="showCourseList.length === 0">
+        {{ userType === '0' ? '还没有选课' : '还没有上的课' }}
+      </h1>
       <div v-if="showCourseList.length % 3 !== 0" style="width: 340px" />
       <div v-if="showCourseList.length % 3 === 1" style="width: 340px" />
     </div>
   </div>
-  <el-dialog v-model="showCourseDetail" :title="detailCourse?.name" width="50%">
+  <el-dialog v-model="showCourseDetail" destroy-on-close :title="detailCourse?.name" width="50%">
     <CourseDetail
       :course="detailCourse!"
       :allowControl="userType === '0'"
       :allowDeletePeople="userType === '1'"
+      @changeStatus="handleChangeStatus"
     ></CourseDetail> </el-dialog
   ><el-dialog v-model="isShowAddCourse" title="添加课程" width="50%">
     <el-form
@@ -89,7 +93,8 @@
 import router from '@/router';
 import { onMounted, ref, watch } from 'vue';
 import CourseDetail from '../course/CourseDetail.vue';
-import { FormRules, FormInstance } from 'element-plus';
+import { FormRules, FormInstance, ElMessage } from 'element-plus';
+import api from '@/api/api';
 
 export interface Course {
   name: string;
@@ -115,95 +120,29 @@ const clickCourse = (course: Course) => {
 
 const courseList = ref<Course[]>([]);
 
+const getCourse = () => {
+  api.getAllCourse().then((res) => {
+    courseList.value = res.data;
+    if (userType === '0') {
+      api.getSelectCourse({ username: userName! }).then((res) => {
+        courseList.value = courseList.value.map((item) => {
+          if (res.data.find((course) => course.course === item.name)) {
+            return { ...item, select: true };
+          } else return { ...item, select: false };
+        });
+      });
+    }
+  });
+};
 onMounted(() => {
-  setTimeout(() => {
-    courseList.value = [
-      {
-        name: '计算机网络',
-        teacher: '张三',
-        credit: 3,
-        type: '公共必修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100,
-        select: true
-      },
-      {
-        name: '速度速度上',
-        teacher: '张三',
-        credit: 3,
-        type: '公共选修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100,
-        select: true
-      },
-      {
-        name: '说的是',
-        teacher: '张三',
-        credit: 3,
-        type: '专业必修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100
-      },
-      {
-        name: '高铁热热',
-        teacher: '张三',
-        credit: 3,
-        type: '专业必修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100,
-        select: true
-      },
-      {
-        name: '好讨厌你',
-        teacher: '张三',
-        credit: 3,
-        type: '专业选修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100,
-        select: false
-      },
-      {
-        name: '具有头发改变',
-        teacher: '张三',
-        credit: 3,
-        type: '专业选修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100,
-        select: false
-      },
-      {
-        name: '通过人工',
-        teacher: '张',
-        credit: 3,
-        type: '专业选修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100,
-        select: false
-      },
-      {
-        name: '投入更多的',
-        teacher: '张',
-        credit: 3,
-        type: '公共必修课',
-        time: '周一 1-2节',
-        place: '教学楼A101',
-        capacity: 100,
-        select: false
-      }
-    ];
-  }, 300);
+  getCourse();
 });
 
+const handleChangeStatus = () => {
+  getCourse();
+};
+
 const showCourseList = ref<Course[]>([]);
-localStorage.setItem('userType', '1');
-localStorage.setItem('userName', '张');
 
 watch(courseList, (newVal) => {
   if (userType === '0') {
@@ -249,6 +188,12 @@ const addCourse = async () => {
     await addCourseFormRef.value.validate();
   } catch (err) {
     return;
+  }
+  try {
+    api.addCourse({ ...addCourseFormModel.value, teacher: userName });
+    ElMessage.success('添加成功');
+  } catch {
+    ElMessage.error('出错了');
   }
 };
 // detail dialog

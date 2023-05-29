@@ -1,8 +1,7 @@
-from flask import Flask, render_template, request, redirect, make_response
+from flask import Flask, jsonify, render_template, request, redirect, make_response
 from flask import session
 import json
 from flask_sqlalchemy import SQLAlchemy
-import os
 import pymysql
 import re
 from sqlalchemy import or_, and_
@@ -19,7 +18,6 @@ class Config(object):
     database = 'exp-4'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://%s:%s@localhost:3456/%s' % (
         user, password, database)
-
     # 设置sqlalchemy自动更跟踪数据库
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
@@ -43,7 +41,7 @@ class user(db.Model):
     # 定义字段
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(100), unique=True)
-    apassword = db.Column(db.String(100), unique=True)
+    apassword = db.Column(db.String(100))
     usertype = db.Column(db.Integer)
 
 
@@ -52,7 +50,25 @@ class coursesinfo(db.Model):
     __tablename__ = 'coursesinfo'
     # 定义字段
     courseid = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    coursename = db.Column(db.String(100), unique=True, index=True)
+    name = db.Column(db.String(100), unique=True, index=True)
+    teacher = db.Column(db.String(100))
+    place = db.Column(db.String(100))
+    credit = db.Column(db.Integer)
+    time = db.Column(db.String(100))
+    type = db.Column(db.String(100))
+    capacity = db.Column(db.Integer)
+
+    def to_json(self):
+        return {
+            'id': self.courseid,
+            'name': self.name,
+            'teacher': self.teacher,
+            'place': self.place,
+            'credit': self.credit,
+            'time': self.time,
+            "type": self.type,
+            "capacity": self.capacity
+        }
 
 
 class studentcourse(db.Model):
@@ -60,8 +76,15 @@ class studentcourse(db.Model):
     __tablename__ = 'personcourse'
     # 定义字段
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    coursename = db.Column(db.String(100), unique=True, index=True)
+    coursename = db.Column(db.String(100))
     personname = db.Column(db.String(100))
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'name': self.personname,
+            'course': self.coursename
+        }
 
 
 class course_comment(db.Model):
@@ -72,25 +95,31 @@ class course_comment(db.Model):
     personname = db.Column(db.String(100))
     coursename = db.Column(db.String(100))
     course_comment = db.Column(db.String(100))
+    comment_time = db.Column(db.String(100))
+
+    rank = db.Column(db.Float)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'name': self.personname,
+            'course': self.coursename,
+            'comment': self.course_comment,
+            'comment_time': self.comment_time,
+            "rank": self.rank
+        }
 
 
-class teacher(db.Model):
-    __tablename__ = 'teacher'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    teachername = db.Column(db.String(100), unique=True)
+# class teacher(db.Model):
+#     __tablename__ = 'teacher'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     teachername = db.Column(db.String(100))
 
 
-class teacher_course(db.Model):
-    __tablename__ = 'teacher_course'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    teachername = db.Column(db.String(100))
-    teachercourse = db.Column(db.String(100))
-
-
-class courese_teacher(db.Model):
-    __tablename__ = 'course_student'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    teachername = db.Column(db.String(100), unique=True)
+# class courese_student(db.Model):
+#     __tablename__ = 'course_student'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     teachername = db.Column(db.String(100))
 # 学生：注册，登录，报名上课，退课，课程评论
 # 老师：注册，登录，添加课程，退学生，删除评论
  # 一些数据库操作
@@ -102,20 +131,25 @@ def add_user(name, password, usety):
     db.session.add(a_user)
     db.session.commit()
 
-# 添加课程
-
-
-def add_course(name):
-    a_course = coursesinfo(coursename=name)
-    db.session.add(a_course)
-    db.session.commit()
 # 老师添加课程
 
 
-def add_course_teacher(name, couese):
-    a_tea = teacher_course(teachername=name, teachercourse=couese)
-    db.session.add(a_tea)
+def add_course(name, tea, place, cri, time, type, cap):
+    # tea = db.Column(db.String(100),  index=True)
+    # place = db.Column(db.String(100), index=True)
+    # cri = db.Column(db.Integer)
+    # time = db.Column(db.String(100), unique=True, index=True)
+    # type = db.Column(db.String(100), index=True)
+    # cap = db.Column(db.Integer, index=True)
+    a_course = coursesinfo(name=name, teacher=tea, credit=cri,
+                           time=time, type=type, capacity=cap, place=place)
+    db.session.add(a_course)
     db.session.commit()
+# #学生添加课程
+# def add_course_teacher(name,course):
+#     a_dd
+#     db.session.add(a_tea)
+#     db.session.commit()
 # 报名上课
 
 
@@ -123,29 +157,36 @@ def add_pe_co(name, coursename):
     a_p_c = studentcourse(coursename=coursename, personname=name)
     db.session.add(a_p_c)
     db.session.commit()
+
 # 添加课程评论
 
 
-def add_comment(com, course, name):
+def add_comment(com, course, name, time, rank):
     # personname = db.Column(db.String(100))
     # coursename = db.Column(db.String(100))
     # course_comment = db.Column(db.String(100))
-    a_com = course_comment(
-        personname=name, coursename=course, course_comment=com)
+    # comment_time = db.Column(db.String(100))
+    # rank = db.Column(db.Float)
+    a_com = course_comment(personname=name, coursename=course,
+                           course_comment=com, rank=rank, comment_time=time)
     db.session.add(a_com)
     db.session.commit()
+# 删除学生课程或退课
 
 
 def del_student_course(name, course):
     #     coursename = db.Column(db.String(100), unique=True, index=True)
     # personname = db.Column(db.String(100))
-    studentcourse.query.filter(
-        and_(coursename=course, personname=name)).delete()
+    studentcourse.query.filter(and_(
+        studentcourse.coursename == course, studentcourse.personname == name)).delete()
+
     db.session.commit()
+
+# 删除学生评论
 
 
 def del_student_comment(comment_id):
-    course_comment.query.filter(id=comment_id).delete()
+    course_comment.query.filter_by(id=comment_id).delete()
     db.session.commit()
 # 登录
 
@@ -161,14 +202,6 @@ def login_user(name, password):
     if User.apassword == password:
         return 1
     return 0
-
-# 展示所有course ，返回一个json 包括所有课程名
-
-
-def showcourse():
-    result = coursesinfo.query().all()
-    coursename = result["coursename"]
-    return json.dumps(coursename)
 
 
 # 定义会话加密
@@ -188,96 +221,155 @@ def before_request():
             return '请输入规范的参数！'
 
 
-@app.route('/api/login')
+@app.route('/api/login.html')
 def login_page():
     if "username" in session:
         username = session["username"]
-        return render_template("index")
+        return render_template("index.html")
     else:
-        return render_template("login")
+        return render_template("login.html")
 
 
 @app.route('/api/login', methods=['POST'])
 # 登录 将用户名和用户类型存入session中
 def login():
     if request.method == 'POST':
-        name = request.json['username']
-        password = request.json['password']
+        data = request.get_json()
+        name = data.get('username')
+        password = data.get('password')
 
         if login_user(name, password) == 1:
             # 设置cookie
             User = user.query.filter_by(username=name).first()
             session['username'] = User.username
             session['usertype'] = User.usertype
-            resp = make_response(render_template("index"))
-            resp.set_cookie("username", name, max_age=3600)
-            session['username'] = name
-            return resp
-        else:
-            return render_template("wrong_user")
+            return jsonify({"name": name, "usertype": User.usertype})
 
 
 @app.route('/api/signUp', methods=['POST'])
 def signup():
     if request.method == 'POST':
-        user = request.json['username']
-        password = request.json['password']
-        types = request.json['usertype']
+        data = request.get_json()
+        user = data.get('username')
+        password = data.get('password')
+        types = data.get('usertype')
         # 这里要加检查
         add_user(user, password=password, usety=types)
-        return render_template("login")
+        return jsonify({"username": user, "usertype": types})
 # 学生加入课程 需要学生姓名，课程姓名
 
 
-@app.route('/api/add', methods=['GET'])
+@app.route('/api/add', methods=['POST'])
 def add():
     if request.method == 'POST':
-        user = request.json['username']
-        coursename = request.json['coursename']
+        data = request.get_json()
+        user = data.get('username')
+        coursename = data.get('coursename')
 
         add_pe_co(name=user, coursename=coursename)
-        return render_template("index")
+        return jsonify({})
+
+# 获取课程学生
+
+
+@app.route("/api/allstudent", methods=['POST'])
+def show_allpeople():
+    data = request.get_json()
+    coursename = data.get("coursename")
+    result = studentcourse.query.filter_by(coursename=coursename).all()
+    temp = []
+    for x in result:
+        temp.append(x.to_json())
+    return jsonify(temp)
 # 删除课程 需要学生姓名，课程姓名
 
 
-@app.route("/api/drop", methods=['GET'])
+@app.route("/api/drop", methods=['POST'])
 def drop():
-    user = request.json['usename']
-    coursename = request.json['coursename']
+    data = request.get_json()
+    user = data.get('username')
+    coursename = data.get('coursename')
     del_student_course(user, coursename)
-
-    return render_template("index")
+    return jsonify({})
 # 评论 需要学生姓名，评论,课程名
 
 
-@app.route("/api/comment", methods=['GET'])
+@app.route("/api/comment", methods=['POST'])
 def comment():
-    comment = request.json['comment']
-    user = request.json['username']
-    course = request.json['coursename']
-    add_comment(comment, course, user)
+    data = request.get_json()
+    comment = data.get('comment')
+    user = data.get('name')
+    course = data.get('coursename')
+    time = data.get('comment_time')
+    rank = data.get('rank')
+    add_comment(comment, course, user, time, rank)
+    return jsonify({})
 # 删除评论 需要评论id
 
 
-@app.route("/api/delcom", methods=['GET'])
+@app.route("/api/delcom", methods=['POST'])
 def delcom():
-    comment_id = request.json['commentid']
+    data = request.get_json()
+    comment_id = data.get('commentid')
     del_student_comment(comment_id)
-    return render_template("index")
-
+    return jsonify({})
 # 显示评论 需要一个coursename
 
 
-@app.route("/api/showcoment", methods=['GET'])
+@app.route("/api/showcoment", methods=['POST'])
 def show_comment():
-    result = course_comment.query.filter(coursename=request.json["coursename"])
-    return json.dumps(result)
+    data = request.get_json()
+    result = course_comment.query.filter_by(coursename=data.get("coursename"))
+    temp = []
+    for x in result:
+        temp.append(x.to_json())
+    return jsonify(temp)
+
+# 展示所有course ，返回一个json 包括所有课程名
 
 
-@app.route("/api/teacheradd")
+@app.route("/api/course/all", methods=['POST'])
+def showcourse():
+    if request.method == 'POST':
+        result = coursesinfo.query.filter_by().all()
+        temp = []
+        for x in result:
+            temp.append(x.to_json())
+        return jsonify(temp)
+
+# 显示已选课程
+
+
+@app.route("/api/show_already", methods=['POST'])
+def show_already():
+    data = request.get_json()
+    result = studentcourse.query.filter_by(personname=data.get("username"))
+    temp = []
+    for x in result:
+        temp.append(x.to_json())
+    return jsonify(temp)
+
+# 老师添加课程
+
+
+@app.route("/api/teacheradd", methods=['POST'])
 def teacheradd():
-    teachername = request.json["name"]
-    course = request.json["course"]
+    # tea = db.Column(db.String(100),  index=True)
+    # place = db.Column(db.String(100), index=True)
+    # cri = db.Column(db.Integer)
+    # time = db.Column(db.String(100), unique=True, index=True)
+    # type = db.Column(db.String(100), index=True)
+    data = request.get_json()
+    # cap = db.Column(db.Integer, index=True)
+    teachername = data.get("teacher")
+    course = data.get("name")
+    cri = data.get("credit")
+    time = data.get("time")
+    type = data.get("type")
+    pla = data.get("place")
+    cap = data.get("capacity")
+    add_course(course, teachername, pla, cri,  time, type, cap)
+    return jsonify({})
 # 登出
 
 
@@ -286,11 +378,9 @@ def logout():
     session.pop("username", None)
 
 
-@app.route('/api/sign')
+@app.route('/api/sign.html')
 def signup_page():
-    return render_template("sign")
-
-    return render_template("news-near")
+    return render_template("sign.html")
 
 
 if __name__ == '__main__':

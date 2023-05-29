@@ -15,17 +15,17 @@
       </div>
       <div>
         <el-button
-          v-if="allowControl && !course.select && course.select !== undefined"
+          v-if="allowControl && !course.select"
           type="primary"
           size="large"
-          @click="handleClick"
+          @click="joinCourse"
           >选课</el-button
         >
         <el-button
           v-if="allowControl && course.select"
           type="danger"
           size="large"
-          @click="handleClick"
+          @click="dropCourse"
           >退课</el-button
         >
       </div>
@@ -52,23 +52,23 @@
             <div style="display: flex; flex-direction: row; align-items: center; gap: 16px">
               <span>{{ comment.name }}</span>
               <el-rate
-                v-model="comment.mark"
+                v-model="comment.rank"
                 :allow-half="true"
                 disabled
                 :colors="['#F56C6C', '#E6A23C', '#67C23A']"
               ></el-rate>
             </div>
-            <span>{{ comment.time.toLocaleString() }}</span>
+            <span>{{ comment.comment_time.toLocaleString() }}</span>
           </div>
         </template>
         <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 16px">
-          <div>{{ comment.content }}</div>
+          <div>{{ comment.comment }}</div>
           <el-button
-            v-if="allowDeletePeople"
+            v-if="allowDeletePeople || comment.name === userName"
             style="align-self: flex-end"
             type="danger"
             size="default"
-            @click=""
+            @click="deleteComment(comment.id!)"
             >删除评论</el-button
           >
         </div>
@@ -103,7 +103,7 @@
             placeholder="请输入评论"
             v-model="commentContent"
           ></el-input>
-          <el-button style="align-self: flex-end" type="primary" size="default" @click=""
+          <el-button style="align-self: flex-end" type="primary" size="default" @click="addComment"
             >评论</el-button
           >
         </div>
@@ -130,61 +130,94 @@
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { Course } from './CourseList.vue';
-export interface Comment {
-  name: string;
-  content: string;
-  time: Date;
-  mark: number;
-}
-export interface SelectPeople {
-  name: string;
-}
+import api from '@/api/api';
+import { type Comment } from '@/api/comment';
+import { type CourseSelect } from '@/api/course';
+import { ElMessage } from 'element-plus';
+
 const props = defineProps<{
   course: Course;
   allowControl: Boolean;
   allowDeletePeople?: boolean;
 }>();
 
-const course = props.course;
+const emits = defineEmits(['changeStatus']);
 
-const comments = ref<Comment[]>([
-  {
-    name: '张三',
-    content: '这门课很好',
-    time: new Date(),
-    mark: 2
-  },
-  {
-    name: '李四',
-    content: '这门课很好',
-    time: new Date(),
-    mark: 3.5
-  },
-  {
-    name: '王五',
-    content: '这门课很好',
-    time: new Date(),
-    mark: 5
-  }
-]);
+const course = ref(props.course);
+const userName = localStorage.getItem('userName');
 
-const selectPeople = ref<SelectPeople[]>([
-  {
-    name: '张三'
-  },
-  {
-    name: '李四'
-  },
-  {
-    name: '王五'
+const joinCourse = () => {
+  api.joinCourse({ username: userName!, coursename: course.value.name }).then(() => {
+    course.value.select = true;
+    emits('changeStatus');
+  });
+};
+const dropCourse = () => {
+  api.dropCourse({ username: userName!, coursename: course.value.name }).then(() => {
+    course.value.select = false;
+    emits('changeStatus');
+  });
+};
+
+onMounted(() => {
+  getComment();
+  if (props.allowDeletePeople) {
+    getCourseStudent();
   }
-]);
+});
+
+const getCourseStudent = () => {
+  api.getCourseStudent({ coursename: course.value.name }).then((res) => {
+    selectPeople.value = res.data;
+  });
+};
+
+const getComment = () => {
+  api.getComment({ coursename: course.value.name }).then((res) => {
+    comments.value = res.data.map((comment) => {
+      return {
+        ...comment,
+        comment_time: new Date(comment.comment_time)
+      };
+    });
+  });
+};
+
+const comments = ref<Comment[]>([]);
+
+const selectPeople = ref<CourseSelect[]>([]);
 const deletePeople = (name: string) => {
-  console.log(name);
+  api.dropCourse({ username: name, coursename: course.value.name }).then(() => {
+    getCourseStudent();
+  });
 };
 
 const commentContent = ref('');
 const commentMark = ref(0);
+const addComment = () => {
+  if (commentContent.value === '' || commentMark.value === 0) {
+    ElMessage.error('评论内容和评分不能为空');
+  }
+  api
+    .comment({
+      name: userName!,
+      coursename: course.value.name,
+      comment: commentContent.value,
+      rank: commentMark.value,
+      comment_time: new Date()
+    })
+    .then(() => {
+      commentContent.value = '';
+      commentMark.value = 0;
+      getComment();
+    });
+};
+
+const deleteComment = (comment_id: number) => {
+  api.delComment({ commentid: comment_id }).then(() => {
+    getComment();
+  });
+};
 </script>
 
 <style scoped>
